@@ -1,4 +1,4 @@
-require 'dotenv/load'
+require 'dotenv/load' unless ENV['PRODUCTION'] == 'true'
 require 'nokogiri'
 require 'open-uri'
 require 'net/https'
