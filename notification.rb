@@ -6,13 +6,14 @@ require 'net/https'
 class Notifier
   URL = URI.parse("https://api.pushover.net/1/messages.json")
 
-  def self.call(message:)
+  def self.call(message:, title: nil)
     request = Net::HTTP::Post.new(URL.path)
-    request.set_form_data(
+    request.set_form_data({
       token: ENV['PUSHOVER_TOKEN'],
       user: ENV['PUSHOVER_USER'],
+      title: title,
       message: message
-    )
+    }.compact)
     res = Net::HTTP.new(URL.host, URL.port)
     res.use_ssl = true
     res.verify_mode = OpenSSL::SSL::VERIFY_PEER
@@ -27,5 +28,6 @@ row = keys.zip(row).to_h
 # today_string = Time.now.strftime('%-m/%d')
 # row[:date] == today_string
 Notifier.call(
-  message: "New Routes at Great Western Power Co.\n#{row[:problems]} in the #{row[:location]}"
+  title: "New Routes at Great Western Power Co.",
+  message: "#{row[:problems]} in the #{row[:location]}",
 )
