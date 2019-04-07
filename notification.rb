@@ -25,9 +25,12 @@ page = Nokogiri::HTML(open("https://touchstoneclimbing.com/gwpower-co/route-sett
 keys = [:location, :date, :problems]
 row = page.css('.table-routes tbody tr:first-child td').map(&:text)
 row = keys.zip(row).to_h
-# today_string = Time.now.strftime('%-m/%d')
-# row[:date] == today_string
+today_string = Date.today.strftime('%-m/%d')
+yesterday_string = Date.today.prev_day.strftime('%-m/%d')
+
+exit unless [today_string, yesterday_string].include?(row[:date])
+
 Notifier.call(
   title: "New Routes at Great Western Power Co.",
-  message: "#{row[:problems]} in the #{row[:location]}",
+  message: "#{row[:problems]} in the #{row[:location]} set on #{row[:date]}",
 )
