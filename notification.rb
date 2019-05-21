@@ -25,8 +25,8 @@ page = Nokogiri::HTML(open("https://touchstoneclimbing.com/gwpower-co/route-sett
 keys = [:location, :date, :problems]
 row = page.css('.table-routes tbody tr:first-child td').map(&:text)
 row = keys.zip(row).to_h
-today_string = Date.today.strftime('%-m/%d')
-yesterday_string = Date.today.prev_day.strftime('%-m/%d')
+today_string = Date.today.strftime('%m/%d')
+yesterday_string = Date.today.prev_day.strftime('%m/%d')
 just_set = [today_string, yesterday_string].include?(row[:date])
 
 bouldering_problems = row[:problems].downcase.include?('v')
