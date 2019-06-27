@@ -2,6 +2,8 @@ require 'dotenv/load' unless ENV['PRODUCTION'] == 'true'
 require 'nokogiri'
 require 'open-uri'
 require 'net/https'
+require 'redis'
+require 'json'
 
 class Notifier
   URL = URI.parse("https://api.pushover.net/1/messages.json")
@@ -21,15 +23,24 @@ class Notifier
   end
 end
 
+def redis
+  return @redis if defined?(@redis)
+  url = ENV['REDIS_URL']
+  @redis = Redis.new({ url: url }.compact)
+end
+
 page = Nokogiri::HTML(open("https://touchstoneclimbing.com/gwpower-co/route-setting/"))
 keys = [:location, :date, :problems]
 row = page.css('.table-routes tbody tr:first-child td').map(&:text)
 row = keys.zip(row).to_h
-today_string = Date.today.strftime('%m/%d')
-yesterday_string = Date.today.prev_day.strftime('%m/%d')
-just_set = [today_string, yesterday_string].include?(row[:date])
 
-bouldering_problems = row[:problems].downcase.include?('v')
+old_row = redis.get(:gwpower)
+old_row = JSON.parse(old_row, symbolize_names: true) if old_row
+
+just_set = old_row != row
+bouldering_problems = row[:problems].match?(/v/i)
+
+redis.set(:gwpower, row.to_json) if just_set
 
 puts "Set on #{row[:date]}, just set: #{just_set}"
 puts "#{row[:problems]}, bouldering problems: #{bouldering_problems}"
