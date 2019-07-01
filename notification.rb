@@ -29,24 +29,50 @@ def redis
   @redis = Redis.new({ url: url }.compact)
 end
 
-page = Nokogiri::HTML(open("https://touchstoneclimbing.com/gwpower-co/route-setting/"))
-keys = [:location, :date, :problems]
-row = page.css('.table-routes tbody tr:first-child td').map(&:text)
-row = keys.zip(row).to_h
+gyms = [
+  {
+    gym: :gwpower,
+    name: 'Great Western Power Co.',
+    url: 'https://touchstoneclimbing.com/gwpower-co/route-setting/',
+  },
+  {
+    gym: :ironworks,
+    name: 'Ironworks',
+    url: 'https://touchstoneclimbing.com/ironworks/route-setting/',
+  },
+  {
+    gym: :dogpatch,
+    name: 'Dogpatch Boulders',
+    url: 'https://touchstoneclimbing.com/dogpatch-boulders/route-setting/',
+  },
+]
 
-old_row = redis.get(:gwpower)
-old_row = JSON.parse(old_row, symbolize_names: true) if old_row
+gyms_with_new_problems = gyms.map do |gym|
+  page = Nokogiri::HTML(open(gym[:url]))
+  keys = [:location, :date, :problems]
+  row = page.css('.table-routes tbody tr:first-child td').map(&:text)
+  row = keys.zip(row).to_h
 
-just_set = old_row != row
-bouldering_problems = row[:problems].match?(/v/i)
+  old_row = redis.get(gym[:gym])
+  old_row = JSON.parse(old_row, symbolize_names: true) if old_row
 
-redis.set(:gwpower, row.to_json) if just_set
+  just_set = old_row != row
+  bouldering_problems = row[:problems].match?(/v/i)
 
-puts "Set on #{row[:date]}, just set: #{just_set}"
-puts "#{row[:problems]}, bouldering problems: #{bouldering_problems}"
-exit unless just_set && bouldering_problems
+  redis.set(gym[:gym], row.to_json) if just_set
 
-Notifier.call(
-  title: "New Routes at Great Western Power Co.",
-  message: "#{row[:problems]} in the #{row[:location]} set on #{row[:date]}",
-)
+  next unless just_set && bouldering_problems
+  gym.merge(row)
+end.compact
+
+exit unless gyms_with_new_problems.length > 0
+
+multiple_gyms = gyms_with_new_problems.length > 1
+title = multiple_gyms ? 'Multiple Gyms' : gyms_with_new_problems.first[:name]
+message = gyms_with_new_problems.map do |gym|
+  line = "#{gym[:problems]} in the #{gym[:location]} set on #{gym[:date]}"
+  line += " at #{gym[:name]}" if multiple_gyms
+  line
+end.join("\n")
+
+Notifier.call(title: "New Routes at #{title}", message: message)
