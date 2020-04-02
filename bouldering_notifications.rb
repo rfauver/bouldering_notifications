@@ -29,24 +29,7 @@ def redis
   @redis = Redis.new({ url: url }.compact)
 end
 
-gyms = [
-  {
-    id: :gwpower,
-    name: 'Great Western Power Co.',
-    url: 'https://touchstoneclimbing.com/gwpower-co/route-setting/',
-  },
-  {
-    id: :ironworks,
-    name: 'Ironworks',
-    url: 'https://touchstoneclimbing.com/ironworks/route-setting/',
-  },
-  {
-    id: :dogpatch,
-    name: 'Dogpatch Boulders',
-    url: 'https://touchstoneclimbing.com/dogpatch-boulders/route-setting/',
-  },
-]
-
+gyms = JSON.parse(File.read('gyms.json'), symbolize_names: true)
 gyms_with_new_problems = gyms.map do |gym|
   page = Nokogiri::HTML(open(gym[:url]))
   keys = [:location, :date, :problems]
