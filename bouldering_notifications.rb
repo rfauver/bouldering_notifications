@@ -31,17 +31,17 @@ end
 
 gyms = [
   {
-    gym: :gwpower,
+    id: :gwpower,
     name: 'Great Western Power Co.',
     url: 'https://touchstoneclimbing.com/gwpower-co/route-setting/',
   },
   {
-    gym: :ironworks,
+    id: :ironworks,
     name: 'Ironworks',
     url: 'https://touchstoneclimbing.com/ironworks/route-setting/',
   },
   {
-    gym: :dogpatch,
+    id: :dogpatch,
     name: 'Dogpatch Boulders',
     url: 'https://touchstoneclimbing.com/dogpatch-boulders/route-setting/',
   },
@@ -53,13 +53,13 @@ gyms_with_new_problems = gyms.map do |gym|
   row = page.css('.table-routes tbody tr:first-child td').map(&:text)
   row = keys.zip(row).to_h
 
-  old_row = redis.get(gym[:gym])
+  old_row = redis.get(gym[:id])
   old_row = JSON.parse(old_row, symbolize_names: true) if old_row
 
   just_set = old_row != row
   bouldering_problems = row[:problems].match?(/v/i)
 
-  redis.set(gym[:gym], row.to_json) if just_set
+  redis.set(gym[:id], row.to_json) if just_set
 
   next unless just_set && bouldering_problems
   gym.merge(row)
